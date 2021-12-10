@@ -1,6 +1,6 @@
-# 🏗 Scaffold-ETH
+# 🏗 NFTSwap
 
-> everything you need to build on Ethereum! 🚀
+> Exchange your NFTs with other NFTs. Just pay the gas fee
 
 🧪 Quickly experiment with Solidity using a frontend that adapts to your smart contract:
 
@@ -82,7 +82,7 @@ Documentation, tutorials, challenges, and many more resources, visit: [docs.scaf
 
 Check out all the [active branches](https://github.com/austintgriffith/scaffold-eth/branches/active), [open issues](https://github.com/austintgriffith/scaffold-eth/issues), and join/fund the 🏰 [BuidlGuidl](https://BuidlGuidl.com)!
 
-  
+
  - 🚤  [Follow the full Ethereum Speed Run](https://medium.com/@austin_48503/%EF%B8%8Fethereum-dev-speed-run-bd72bcba6a4c)
 
 
