@@ -15,7 +15,9 @@ describe("SwapBook", function () {
     let book;
     let ownerAddress, requestorAddress, receiverAddress;
     let nilToken;
-    let nfts = [];
+    let ownerNfts = [];
+    let requestorNfts = [];
+    let receiverNfts = [];
     let owner, requestor, receiver;
 
     const mintNil = async (address) => {
@@ -30,16 +32,18 @@ describe("SwapBook", function () {
         const nftAddress = nilToken.address;
         const tokenId1 = await mintNil(requestorAddress);
         const tokenId2 = await mintNil(requestorAddress);
-        nfts.push({ address: nftAddress, tokenId: tokenId1 })
-        nfts.push({ address: nftAddress, tokenId: tokenId2 })
+        requestorNfts.push({ address: nftAddress, tokenId: tokenId1 })
+        requestorNfts.push({ address: nftAddress, tokenId: tokenId2 })
+
         const tokenId3 = await mintNil(receiverAddress);
         const tokenId4 = await mintNil(receiverAddress);
-        nfts.push({ address: nftAddress, tokenId: tokenId3 })
-        nfts.push({ address: nftAddress, tokenId: tokenId4 })
+        receiverNfts.push({ address: nftAddress, tokenId: tokenId3 })
+        receiverNfts.push({ address: nftAddress, tokenId: tokenId4 })
+
         const tokenId5 = await mintNil(ownerAddress);
         const tokenId6 = await mintNil(ownerAddress);
-        nfts.push({ address: nftAddress, tokenId: tokenId5 })
-        nfts.push({ address: nftAddress, tokenId: tokenId6 })
+        ownerNfts.push({ address: nftAddress, tokenId: tokenId5 })
+        ownerNfts.push({ address: nftAddress, tokenId: tokenId6 })
 
     }
 
@@ -63,14 +67,7 @@ describe("SwapBook", function () {
     });
 
     it("request swap", async function () {
-        //address of the nft for swap
-        const requestorNft = nfts[0].address;
-        const requestorNftId = nfts[0].tokenId;
-        //address of the nft to be swapped.
-        const receiverNft = nfts[1].address;
-        const receiverNftId = nfts[1].tokenId;
-
-        const txn = await book.connect(requestor).requestSwap(requestorNft, requestorNftId, receiverAddress, receiverNft, receiverNftId);
+        const txn = await book.connect(requestor).requestSwap(requestorNfts[0].address, requestorNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId);
         const contractReceipt = await txn.wait();
 
         expect(contractReceipt.events.length).to.equal(1)
@@ -81,37 +78,45 @@ describe("SwapBook", function () {
 
     it("Get all the swap offers made to an address", async function () {
         //send two offers
-        const txn = await book.connect(requestor).requestSwap(nfts[0].address, nfts[0].tokenId, receiverAddress, nfts[2].address, nfts[2].tokenId);
+        const txn = await book.connect(requestor).requestSwap(requestorNfts[0].address, requestorNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId);
         await txn.wait();
-        const txn1 = await book.connect(requestor).requestSwap(nfts[1].address, nfts[1].tokenId, receiverAddress, nfts[2].address, nfts[2].tokenId);
+        const txn1 = await book.connect(requestor).requestSwap(requestorNfts[1].address, requestorNfts[1].tokenId, receiverAddress, receiverNfts[1].address, receiverNfts[1].tokenId);
         await txn1.wait();
-        const txn2 = await book.connect(owner).requestSwap(nfts[5].address, nfts[5].tokenId, receiverAddress, nfts[2].address, nfts[2].tokenId);
+        const txn2 = await book.connect(owner).requestSwap(ownerNfts[0].address, ownerNfts[0].tokenId, receiverAddress, receiverNfts[1].address, receiverNfts[1].tokenId);
         await txn2.wait();
         const offers = await book.offersReceived(receiverAddress);
         expect(offers.length).to.equal(3);
-        expect(offers[0].requestorAddress.toLowerCase()).to.equal(requestorAddress.toLowerCase())
-        expect(offers[1].requestorAddress.toLowerCase()).to.equal(requestorAddress.toLowerCase())
-        expect(offers[2].requestorAddress.toLowerCase()).to.equal(ownerAddress.toLowerCase())
+        const offer1 = await book.getOffer(offers[0]);
+        const offer2 = await book.getOffer(offers[1]);
+        const offer3 = await book.getOffer(offers[2]);
+        expect(offer1.requestorAddress.toLowerCase()).to.equal(requestorAddress.toLowerCase())
+        expect(offer2.requestorAddress.toLowerCase()).to.equal(requestorAddress.toLowerCase())
+        expect(offer3.requestorAddress.toLowerCase()).to.equal(ownerAddress.toLowerCase())
 
-        expect(offers[0].requestorNft.toLowerCase()).to.equal(nfts[0].address.toLowerCase())
-        expect(offers[0].requestorNftId).to.equal(nfts[0].tokenId)
-        expect(offers[1].requestorNftId).to.equal(nfts[1].tokenId)
+        expect(offer1.requestorNft.toLowerCase()).to.equal(requestorNfts[0].address.toLowerCase())
+        expect(offer1.requestorNftId).to.equal(requestorNfts[0].tokenId)
+        expect(offer2.requestorNftId).to.equal(requestorNfts[1].tokenId)
+        expect(offer3.requestorNftId).to.equal(ownerNfts[0].tokenId)
     });
 
     it("Get all swap requests made from an address", async function () {
 
         //send two offers
-        const txn = await book.connect(requestor).requestSwap(nfts[0].address, nfts[0].tokenId, receiverAddress, nfts[2].address, nfts[2].tokenId);
+        const txn = await book.connect(requestor).requestSwap(requestorNfts[0].address, requestorNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId);
         await txn.wait();
-        const txn1 = await book.connect(owner).requestSwap(nfts[5].address, nfts[5].tokenId, receiverAddress, nfts[2].address, nfts[2].tokenId);
+        const txn1 = await book.connect(owner).requestSwap(ownerNfts[0].address, ownerNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId);
         await txn1.wait();
+
         const swapRequests = await book.swapRequestsMade(requestorAddress);
         expect(swapRequests.length).to.equal(1);
-        expect(swapRequests[0].receiverAddress.toLowerCase()).to.equal(receiverAddress.toLowerCase())
+        const offer1 = await book.getOffer(swapRequests[0]);
+
+        expect(offer1.receiverAddress.toLowerCase()).to.equal(receiverAddress.toLowerCase())
 
         const swapRequests1 = await book.swapRequestsMade(ownerAddress);
         expect(swapRequests1.length).to.equal(1);
-        expect(swapRequests1[0].receiverAddress.toLowerCase()).to.equal(receiverAddress.toLowerCase())
+        const offer2 = await book.getOffer(swapRequests1[0]);
+        expect(offer2.receiverAddress.toLowerCase()).to.equal(receiverAddress.toLowerCase())
 
         const swapRequests2 = await book.swapRequestsMade(receiverAddress);
         expect(swapRequests2.length).to.equal(0);
@@ -120,11 +125,38 @@ describe("SwapBook", function () {
     it("Make sure the requestor owns the nft before placing the swap", async function () {
         const txn = await book
             .connect(requestor)
-            .requestSwap(nfts[2].address, nfts[2].tokenId, receiverAddress, nfts[3].address, nfts[3].tokenId)
+            .requestSwap(ownerNfts[0].address, ownerNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId)
             .catch(error => error);
-        expect(txn.message).to.equal("VM Exception while processing transaction: reverted with reason string 'Not the owner of the NFT you want to swap'");
+        expect(txn.message).to.equal("VM Exception while processing transaction: reverted with reason string 'You are not the owner of the NFT you want to exchange'");
     });
 
+    it("Make sure the receiver owns the nft before placing the swap", async function () {
+        const txn = await book
+            .connect(requestor)
+            .requestSwap(requestorNfts[0].address, requestorNfts[0].tokenId, receiverAddress, ownerNfts[0].address, ownerNfts[0].tokenId)
+            .catch(error => error);
+        expect(txn.message).to.equal("VM Exception while processing transaction: reverted with reason string 'Receiver no longer owns the NFT you want to exchange'");
+    });
+
+
+    it("Fail for invalid requestor nft address", async function () {
+        const txn = await book
+            .connect(requestor)
+            .requestSwap(ethers.constants.AddressZero, "1", receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId)
+            .catch(error => error);
+        expect(txn.message).to.equal("Transaction reverted: function call to a non-contract account");
+    });
+
+
+    // it("Receiver accepts an offer", async function () {
+    //     //make two offers
+    //     const txn = await book.connect(requestor).requestSwap(requestorNfts[0].address, requestorNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId);
+    //     await txn.wait();
+    //     const txn = await book.connect(owner).requestSwap(ownerNfts[0].address, ownerNfts[0].tokenId, receiverAddress, receiverNfts[1].address, receiverNfts[1].tokenId);
+    //     await txn.wait();
+
+    //     await book.acceptOffer(offerId)
+    // });
 
     // it("Should instantiate Vendor and transfer all the tokens", async function () {
 
