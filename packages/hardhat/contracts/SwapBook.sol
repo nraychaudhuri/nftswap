@@ -25,7 +25,16 @@ contract SwapBook {
     //mapping of receiver to swap requests received
     mapping(address => uint256[]) public receiverToSwap;
 
-    event SwapRequested(address indexed requestor, address indexed receiver);
+    event SwapRequested(
+        address indexed requestor,
+        address indexed receiver,
+        uint256 indexed offerId
+    );
+    event SwapCompleted(
+        address indexed requestor,
+        address indexed receiver,
+        uint256 indexed offerId
+    );
     //Not sure yet what should be stored on-chain vs off-chain
     //requestSwap
     //view Offers
@@ -56,13 +65,15 @@ contract SwapBook {
             msg.sender == requestorNFT.ownerOf(requestorNftId),
             "You are not the owner of the NFT you want to exchange"
         );
-
         ERC721 receiverNFT = ERC721(receiverNftAddress);
         require(
             receiverAddress == receiverNFT.ownerOf(receiverNftId),
             "Receiver no longer owns the NFT you want to exchange"
         );
-
+        require(
+            address(this) == requestorNFT.getApproved(requestorNftId),
+            "Contract needs to be approved before swap can be requested"
+        );
         _offerIds.increment();
         uint256 id = _offerIds.current();
 
@@ -81,7 +92,40 @@ contract SwapBook {
         swapsReceived.push(id);
         requestorToSwap[msg.sender] = swapsRequested;
         receiverToSwap[receiverAddress] = swapsReceived;
-        emit SwapRequested(msg.sender, receiverAddress);
+        emit SwapRequested(msg.sender, receiverAddress, id);
+    }
+
+    function acceptOffer(uint256 offerId) public {
+        SwapOffer memory offer = idToOffers[offerId];
+        ERC721 requestorNFT = ERC721(offer.requestorNft);
+        ERC721 receiverNFT = ERC721(offer.receiverNft);
+        require(
+            msg.sender == offer.receiverAddress,
+            "Only receiver of the offer can accept offer"
+        );
+        require(
+            address(this) == receiverNFT.getApproved(offer.receiverNftId),
+            "Contract needs to be approved before accepting the offer"
+        );
+        require(
+            address(this) == requestorNFT.getApproved(offer.requestorNftId),
+            "Contract does not have the requestors approval at this time"
+        );
+        requestorNFT.transferFrom(
+            offer.requestorAddress,
+            offer.receiverAddress,
+            offer.requestorNftId
+        );
+        receiverNFT.transferFrom(
+            msg.sender,
+            offer.requestorAddress,
+            offer.receiverNftId
+        );
+        emit SwapCompleted(
+            offer.requestorAddress,
+            offer.receiverAddress,
+            offerId
+        );
     }
 
     function offersReceived(address receiver)

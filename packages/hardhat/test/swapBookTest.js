@@ -1,6 +1,7 @@
 const { use, expect } = require("chai");
 const { ethers } = require("hardhat");
 const { solidity } = require("ethereum-waffle");
+const { BigNumber } = require("@ethersproject/bignumber");
 
 // const {
 //     BN,           // Big Number support
@@ -13,12 +14,14 @@ const { solidity } = require("ethereum-waffle");
 
 describe("SwapBook", function () {
     let book;
+    let bookAddress;
     let ownerAddress, requestorAddress, receiverAddress;
     let nilToken;
     let ownerNfts = [];
     let requestorNfts = [];
     let receiverNfts = [];
     let owner, requestor, receiver;
+
 
     const mintNil = async (address) => {
         const txn = await nilToken.mintNil(address, "uri to asset");
@@ -28,8 +31,9 @@ describe("SwapBook", function () {
         return receipt.events[0].args[2].toString();
     }
 
-    const assignTokens = async (ownerAddress, requestorAddress, receiverAddress) => {
-        const nftAddress = nilToken.address;
+    const assignTokens = async (nftAddress, ownerAddress, requestorAddress, receiverAddress) => {
+        const ownerNfts = [], requestorNfts = [], receiverNfts = [];
+
         const tokenId1 = await mintNil(requestorAddress);
         const tokenId2 = await mintNil(requestorAddress);
         requestorNfts.push({ address: nftAddress, tokenId: tokenId1 })
@@ -45,13 +49,19 @@ describe("SwapBook", function () {
         ownerNfts.push({ address: nftAddress, tokenId: tokenId5 })
         ownerNfts.push({ address: nftAddress, tokenId: tokenId6 })
 
+        return [ownerNfts, requestorNfts, receiverNfts];
+    }
+
+    const approveContract = async (nftOwner, toAddress, tokenId) => {
+        const approveTxn = await nilToken.connect(nftOwner).approve(toAddress, tokenId);
+        await approveTxn.wait();
     }
 
     beforeEach(async () => {
-
         const SwapBook = await ethers.getContractFactory("SwapBook");
-        book = await SwapBook.deploy();
-        await book.deployed();
+        const bookTxn = await SwapBook.deploy();
+        book = await bookTxn.deployed();
+        bookAddress = book.address;
 
         [owner, requestor, receiver] = await ethers.getSigners();
         requestorAddress = await requestor.getAddress();
@@ -59,31 +69,56 @@ describe("SwapBook", function () {
         ownerAddress = await owner.getAddress();
 
         const NilToken = await ethers.getContractFactory("NilToken");
-        nilToken = await NilToken.deploy();
-        await nilToken.deployed();
+        const nilTokenTxn = await NilToken.deploy();
+        nilToken = await nilTokenTxn.deployed();
 
-        await assignTokens(ownerAddress, requestorAddress, receiverAddress);
+        [ownerNfts, requestorNfts, receiverNfts] = await assignTokens(nilToken.address, ownerAddress, requestorAddress, receiverAddress);
+
+    });
+
+    it("request swap fail if contract is not approved for the requestor nft", async function () {
+        const txn = await book
+            .connect(requestor)
+            .requestSwap(requestorNfts[0].address, requestorNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId)
+            .catch(error => error);
+
+        expect(txn.message).to.equal("VM Exception while processing transaction: reverted with reason string 'Contract needs to be approved before swap can be requested'");
 
     });
 
     it("request swap", async function () {
-        const txn = await book.connect(requestor).requestSwap(requestorNfts[0].address, requestorNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId);
+        const approveTxn = await nilToken.connect(requestor).approve(bookAddress, requestorNfts[0].tokenId);
+        await approveTxn.wait();
+        const approvedAddress = await nilToken.getApproved(requestorNfts[0].tokenId);
+        expect(approvedAddress).to.equal(bookAddress);
+
+        const txn = await book
+            .connect(requestor)
+            .requestSwap(requestorNfts[0].address, requestorNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId);
         const contractReceipt = await txn.wait();
 
         expect(contractReceipt.events.length).to.equal(1)
         expect(contractReceipt.events[0].event).to.equal("SwapRequested");
         expect(contractReceipt.events[0].args[0]).to.equal(requestorAddress);
         expect(contractReceipt.events[0].args[1]).to.equal(receiverAddress);
+        expect(contractReceipt.events[0].args[2]).to.equal(BigNumber.from("1"));
     });
 
+
     it("Get all the swap offers made to an address", async function () {
-        //send two offers
+        //approve contract for initiating the swap
+        await approveContract(requestor, bookAddress, requestorNfts[0].tokenId);
+        await approveContract(requestor, bookAddress, requestorNfts[1].tokenId);
+
         const txn = await book.connect(requestor).requestSwap(requestorNfts[0].address, requestorNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId);
         await txn.wait();
         const txn1 = await book.connect(requestor).requestSwap(requestorNfts[1].address, requestorNfts[1].tokenId, receiverAddress, receiverNfts[1].address, receiverNfts[1].tokenId);
         await txn1.wait();
+
+        await approveContract(owner, bookAddress, ownerNfts[0].tokenId);
         const txn2 = await book.connect(owner).requestSwap(ownerNfts[0].address, ownerNfts[0].tokenId, receiverAddress, receiverNfts[1].address, receiverNfts[1].tokenId);
         await txn2.wait();
+
         const offers = await book.offersReceived(receiverAddress);
         expect(offers.length).to.equal(3);
         const offer1 = await book.getOffer(offers[0]);
@@ -101,6 +136,8 @@ describe("SwapBook", function () {
 
     it("Get all swap requests made from an address", async function () {
 
+        await approveContract(requestor, bookAddress, requestorNfts[0].tokenId);
+        await approveContract(owner, bookAddress, ownerNfts[0].tokenId);
         //send two offers
         const txn = await book.connect(requestor).requestSwap(requestorNfts[0].address, requestorNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId);
         await txn.wait();
@@ -147,45 +184,86 @@ describe("SwapBook", function () {
         expect(txn.message).to.equal("Transaction reverted: function call to a non-contract account");
     });
 
+    it("accept offer should fail if contract is not approved for receiver nft", async function () {
+        approveContract(requestor, bookAddress, requestorNfts[0].tokenId);
+        const txn1 = await book.connect(requestor).requestSwap(requestorNfts[0].address, requestorNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId);
+        await txn1.wait();
+        const offers = await book.offersReceived(receiverAddress);
 
-    // it("Receiver accepts an offer", async function () {
-    //     //make two offers
-    //     const txn = await book.connect(requestor).requestSwap(requestorNfts[0].address, requestorNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId);
-    //     await txn.wait();
-    //     const txn = await book.connect(owner).requestSwap(ownerNfts[0].address, ownerNfts[0].tokenId, receiverAddress, receiverNfts[1].address, receiverNfts[1].tokenId);
-    //     await txn.wait();
+        const txn = await book
+            .connect(receiver)
+            .acceptOffer(offers[0])
+            .catch(error => error);
 
-    //     await book.acceptOffer(offerId)
-    // });
+        expect(txn.message).to.equal("VM Exception while processing transaction: reverted with reason string 'Contract needs to be approved before accepting the offer'");
 
-    // it("Should instantiate Vendor and transfer all the tokens", async function () {
+    });
 
-    //     expect(await token.totalSupply()).to.equal("1000000000000000000000");
-    //     expect(await token.balanceOf(vendor.address)).to.equal("0");
-    //     const txn = await token.transfer(vendor.address, ethers.utils.parseEther("1000"));
-    //     // wait until the transaction is mined
-    //     await txn.wait();
-    //     expect(await token.balanceOf(vendor.address)).to.equal("1000000000000000000000");
-    // });
-    // it("BuyTokens to should transfer 100 tokens to caller for one eth", async function () {
-    //     //owner address deployed the contracts
-    //     //otherAddress will be used buy tokens
-    //     const [owner, other] = await ethers.getSigners();
+    it("Only receiver can accept offer", async function () {
+        approveContract(requestor, bookAddress, requestorNfts[0].tokenId);
+        const txn1 = await book.connect(requestor).requestSwap(requestorNfts[0].address, requestorNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId);
+        await txn1.wait();
+        const offers = await book.offersReceived(receiverAddress);
 
-    //     expect(await token.totalSupply()).to.equal("1000000000000000000000");
-    //     expect(await token.balanceOf(other.address)).to.equal("0");
-    //     expect(await token.balanceOf(vendor.address)).to.equal("0");
+        const txn = await book
+            .connect(owner)
+            .acceptOffer(offers[0])
+            .catch(error => error);
 
-    //     console.log("Other address ", other.address)
-    //     console.log("Wei ", ethers.utils.parseEther("1").toString())
-    //     const txn = await vendor.buyTokens()
-    //     await txn.wait();
-    //     expect(await token.balanceOf(other.address)).to.equal("0");
+        expect(txn.message).to.equal("VM Exception while processing transaction: reverted with reason string 'Only receiver of the offer can accept offer'");
 
+    });
 
-    //     // const transactionHash = await owner.sendTransaction({
-    //     //     to: "contract address",
-    //     //     value: ethers.utils.parseEther("1.0"), // Sends exactly 1.0 ether
-    //     //   });
-    // });
+    it("throw error for invalid offer id", async function () {
+        approveContract(requestor, bookAddress, requestorNfts[0].tokenId);
+        const txn1 = await book.connect(requestor).requestSwap(requestorNfts[0].address, requestorNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId);
+        await txn1.wait();
+        const offers = await book.offersReceived(receiverAddress);
+
+        const txn = await book
+            .connect(receiver)
+            .acceptOffer(BigNumber.from("42"))
+            .catch(error => error);
+
+        expect(txn.message).to.equal("VM Exception while processing transaction: reverted with reason string 'Only receiver of the offer can accept offer'");
+    });
+
+    it("execute offer when both party approved the contract", async function () {
+        approveContract(requestor, bookAddress, requestorNfts[0].tokenId);
+        const txn1 = await book.connect(requestor).requestSwap(requestorNfts[0].address, requestorNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId);
+        await txn1.wait();
+        const offers = await book.offersReceived(receiverAddress);
+
+        approveContract(receiver, bookAddress, receiverNfts[0].tokenId);
+        const txn = await book.connect(receiver).acceptOffer(offers[0])
+        const receipt = await txn.wait();
+        expect(receipt.events.filter(e => e.event == "SwapCompleted").length).to.equal(1);
+
+        //check the ownership change
+        const newOwner1 = await nilToken.ownerOf(requestorNfts[0].tokenId);
+        expect(newOwner1).to.equal(receiverAddress);
+        const newOwner2 = await nilToken.ownerOf(receiverNfts[0].tokenId);
+        expect(newOwner2).to.equal(requestorAddress);
+        // const eventFilter = nilToken.filters.Transfer();
+        // const events = await nilToken.queryFilter(eventFilter);
+        // console.log("events ", events);
+        // expect(receipt.events.length).to.equal(2);
+        // expect(contractReceipt.events[0].event).to.equal("Transfer");
+        // expect(contractReceipt.events[1].event).to.equal("Transfer");
+
+    });
+
+    it("Make sure contract has approval from both party at time of the offer execution", async function () {
+        approveContract(requestor, bookAddress, requestorNfts[0].tokenId);
+        const txn1 = await book.connect(requestor).requestSwap(requestorNfts[0].address, requestorNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId);
+        await txn1.wait();
+        const offers = await book.offersReceived(receiverAddress);
+
+        //remove the approval
+        approveContract(requestor, ownerAddress, requestorNfts[0].tokenId);
+
+        approveContract(receiver, bookAddress, receiverNfts[0].tokenId);
+        const txn = await book.connect(receiver).acceptOffer(offers[0]).catch(e => e);
+        expect(txn.message).to.equal("VM Exception while processing transaction: reverted with reason string 'Contract does not have the requestors approval at this time'");
+    });
 });
