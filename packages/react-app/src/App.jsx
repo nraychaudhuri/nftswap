@@ -337,8 +337,9 @@ function App(props) {
             yourLocalBalance={yourLocalBalance}
             price={price}
             tx={tx}
-            writeContracts={writeContracts}
-            readContracts={readContracts}
+            localContracts={readContracts}
+            mainnetContracts={mainnetContracts}
+            targetNetwork={targetNetwork}
           />
         </Route>
         <Route path="/mainnetdai">

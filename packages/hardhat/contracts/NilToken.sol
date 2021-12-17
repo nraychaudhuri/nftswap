@@ -57,7 +57,7 @@ contract NilToken is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
     }
 
     function _baseURI() internal pure override returns (string memory) {
-        return "https://foo.com/token/";
+        return "https://ipfs.io/ipfs/";
     }
 
     function mintNil(address to, string memory uri)

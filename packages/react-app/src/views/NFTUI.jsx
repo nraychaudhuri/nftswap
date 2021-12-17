@@ -6,6 +6,8 @@ import { Address, Balance, Events } from "../components";
 import { useMoralis, useNFTBalances } from "react-moralis";
 import { Image, Tooltip, Modal, Skeleton } from "antd";
 import { FileSearchOutlined, SendOutlined, ShoppingCartOutlined } from "@ant-design/icons";
+import { useLocalNFTLoader, useMainnetNFTLoader } from "../libs/NFTLoader";
+import { useEffect } from "react";
 
 const { Meta } = Card;
 
@@ -29,20 +31,24 @@ export default function NFTUI({
   yourLocalBalance,
   price,
   tx,
-  readContracts,
-  writeContracts,
+  localContracts,
+  mainnetContracts,
+  targetNetwork
 }) {
   const { Moralis, chainId } = useMoralis();
-  const [visible, setVisibility] = useState(false);
-  const [receiverToSend, setReceiver] = useState(null);
-  const [amountToSend, setAmount] = useState(null);
-  const [nftToSend, setNftToSend] = useState(null);
-  const [isPending, setIsPending] = useState(false);
 
   const createSvg = (text) => { return { __html: text }; };
+  // const [nfts, setNfts] = useState(targetNetwork.name === "mainnet" ? useMainnetNFTLoader("0xaB8046D6D79569895653086C1F83AcFC5a1703Fa", mainnetProvider, mainnetContracts) : {})
+  // const nfts = useNFTLoader("0xaB8046D6D79569895653086C1F83AcFC5a1703Fa");
+  const nfts = targetNetwork.name === "mainnet" ? useMainnetNFTLoader("0xaB8046D6D79569895653086C1F83AcFC5a1703Fa") : useLocalNFTLoader(address, localProvider, localContracts)
+  // const nfts = useLocalNFTLoader(address, localProvider, localContracts)
+  console.log("NFT balances ", nfts.data);
+  console.log("NFT error ", nfts.error);
+  console.log("NFT isLoading ", nfts.isLoading);
+  console.log("NFT isFetching ", nfts.isFetching);
+  console.log("Targeting network ", targetNetwork);
+  console.log("Address ", address);
 
-  let { data: NFTBalances, error, isLoading, isFetching } = useNFTBalances({ address: "0xaB8046D6D79569895653086C1F83AcFC5a1703Fa" });
-  console.log("NFT balances ", NFTBalances);
   return (
     <div>
       {/*
@@ -53,9 +59,9 @@ export default function NFTUI({
         <Divider />
         <>
           <div style={styles.NFTs}>
-            <Skeleton loading={!NFTBalances?.result}>
-              {NFTBalances?.result &&
-                NFTBalances.result.map((nft, index) => (
+            <Skeleton loading={!nfts.data?.result}>
+              {nfts.data?.result &&
+                nfts.data.result.map((nft, index) => (
                   <Card
                     hoverable
                     actions={[
@@ -90,94 +96,6 @@ export default function NFTUI({
             </Skeleton>
           </div>
         </>
-        <Divider />
-        Your Address:
-        <Address address={address} ensProvider={mainnetProvider} fontSize={16} />
-        <Divider />
-        ENS Address Example:
-        <Address
-          address="0x34aA3F359A9D614239015126635CE7732c18fDF3" /* this will show as austingriffith.eth */
-          ensProvider={mainnetProvider}
-          fontSize={16}
-        />
-        <Divider />
-        {/* use utils.formatEther to display a BigNumber: */}
-        <h2>Your Balance: {yourLocalBalance ? utils.formatEther(yourLocalBalance) : "..."}</h2>
-        <div>OR</div>
-        <Balance address={address} provider={localProvider} price={price} />
-        <Divider />
-        <div>🐳 Example Whale Balance:</div>
-        <Balance balance={utils.parseEther("1000")} provider={localProvider} price={price} />
-        <Divider />
-        {/* use utils.formatEther to display a BigNumber: */}
-        <h2>Your Balance: {yourLocalBalance ? utils.formatEther(yourLocalBalance) : "..."}</h2>
-        <Divider />
-        Your Contract Address:
-        <Address
-          address={readContracts && readContracts.YourContract ? readContracts.YourContract.address : null}
-          ensProvider={mainnetProvider}
-          fontSize={16}
-        />
-        <Divider />
-        <div style={{ margin: 8 }}>
-          <Button
-            onClick={() => {
-              /* look how you call setPurpose on your contract: */
-              tx(writeContracts.YourContract.setPurpose("🍻 Cheers"));
-            }}
-          >
-            Set Purpose to &quot;🍻 Cheers&quot;
-          </Button>
-        </div>
-        <div style={{ margin: 8 }}>
-          <Button
-            onClick={() => {
-              /*
-              you can also just craft a transaction and send it to the tx() transactor
-              here we are sending value straight to the contract's address:
-            */
-              tx({
-                to: writeContracts.YourContract.address,
-                value: utils.parseEther("0.001"),
-              });
-              /* this should throw an error about "no fallback nor receive function" until you add it */
-            }}
-          >
-            Send Value
-          </Button>
-        </div>
-        <div style={{ margin: 8 }}>
-          <Button
-            onClick={() => {
-              /* look how we call setPurpose AND send some value along */
-              tx(
-                writeContracts.YourContract.setPurpose("💵 Paying for this one!", {
-                  value: utils.parseEther("0.001"),
-                }),
-              );
-              /* this will fail until you make the setPurpose function payable */
-            }}
-          >
-            Set Purpose With Value
-          </Button>
-        </div>
-        <div style={{ margin: 8 }}>
-          <Button
-            onClick={() => {
-              /* you can also just craft a transaction and send it to the tx() transactor */
-              tx({
-                to: writeContracts.YourContract.address,
-                value: utils.parseEther("0.001"),
-                data: writeContracts.YourContract.interface.encodeFunctionData("setPurpose(string)", [
-                  "🤓 Whoa so 1337!",
-                ]),
-              });
-              /* this should throw an error about "no fallback nor receive function" until you add it */
-            }}
-          >
-            Another Example
-          </Button>
-        </div>
       </div>
 
       {/*
@@ -185,9 +103,9 @@ export default function NFTUI({
           (uncomment the event and emit line in YourContract.sol! )
       */}
       <Events
-        contracts={readContracts}
-        contractName="YourContract"
-        eventName="SetPurpose"
+        contracts={localContracts}
+        contractName="NilToken"
+        eventName="Transfer"
         localProvider={localProvider}
         mainnetProvider={mainnetProvider}
         startBlock={1}
