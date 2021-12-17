@@ -35,14 +35,13 @@ contract SwapBook {
         address indexed receiver,
         uint256 indexed offerId
     );
+
     //Not sure yet what should be stored on-chain vs off-chain
     //requestSwap
     //view Offers
     //accept Offer
     //finalize swap
     //cancel offer
-
-    string public purpose = "Building Unstoppable Apps!!!";
 
     constructor() {
         // what should we do on deploy?
