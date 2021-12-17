@@ -67,13 +67,11 @@ const getFromIPFS = async hashToGet => {
     }
 };
 
-export function useLocalNFTLoader(address, localProvider, localContracts) {
+export function useLocalNFTLoader(address, localContracts) {
     const [nfts, setNfts] = useState({});
-    const balance = useContractReader(localContracts, "NilToken", "balanceOf", [address]);
-    console.log("🤗 balance:", balance);
     useEffect(async () => {
         const collectibleUpdate = [];
-        for (let tokenIndex = 0; tokenIndex < balance; tokenIndex++) {
+        for (let tokenIndex = 0; tokenIndex < 4; tokenIndex++) {
             try {
                 console.log("Getting token index", tokenIndex);
                 const tokenId = await localContracts.NilToken.tokenOfOwnerByIndex(address, tokenIndex);
@@ -103,7 +101,7 @@ export function useLocalNFTLoader(address, localProvider, localContracts) {
             isLoading: false,
             isFetching: false
         });
-    }, [balance]);
+    }, [address, localContracts]);
     //use local network
     return nfts;
 }

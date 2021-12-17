@@ -6,7 +6,7 @@ import { Address, Balance, Events } from "../components";
 import { useMoralis, useNFTBalances } from "react-moralis";
 import { Image, Tooltip, Modal, Skeleton } from "antd";
 import { FileSearchOutlined, SendOutlined, ShoppingCartOutlined } from "@ant-design/icons";
-import { useLocalNFTLoader, useMainnetNFTLoader } from "../libs/NFTLoader";
+import { useLocalNFTLoader, useMainnetNFTLoader, useNFTLoader } from "../libs/NFTLoader";
 import { Moralis } from "moralis";
 
 const { Meta } = Card;
@@ -38,10 +38,8 @@ export default function NFTUI({
   // const { Moralis, chainId } = useMoralis();
 
   const createSvg = (text) => { return { __html: text }; };
-  // const [nfts, setNfts] = useState(targetNetwork.name === "mainnet" ? useMainnetNFTLoader("0xaB8046D6D79569895653086C1F83AcFC5a1703Fa", mainnetProvider, mainnetContracts) : {})
-  // const nfts = useNFTLoader("0xaB8046D6D79569895653086C1F83AcFC5a1703Fa");
-  const nfts = targetNetwork.name === "mainnet" ? useMainnetNFTLoader("0xaB8046D6D79569895653086C1F83AcFC5a1703Fa") : useLocalNFTLoader(address, localProvider, localContracts)
-  // const nfts = useLocalNFTLoader(address, localProvider, localContracts)
+  const nfts = targetNetwork.name === "mainnet" ? useMainnetNFTLoader("0xaB8046D6D79569895653086C1F83AcFC5a1703Fa") : useLocalNFTLoader(address, localContracts)
+  // const nfts = useNFTLoader(address, targetNetwork, localContracts)
   console.log("NFT balances ", nfts.data);
   console.log("NFT error ", nfts.error);
   console.log("NFT isLoading ", nfts.isLoading);
