@@ -13,6 +13,19 @@ const replaceIpfsMaybe = (url) => {
     return url?.replace("ipfs://", "https://ipfs.io/ipfs/");
 }
 
+const getFromIPFS = async hashToGet => {
+    for await (const file of ipfs.get(hashToGet)) {
+        console.log(file.path);
+        if (!file.content) continue;
+        const content = new BufferList();
+        for await (const chunk of file.content) {
+            content.append(chunk);
+        }
+        console.log(content);
+        return content;
+    }
+};
+
 export function useMainnetNFTLoader(address) {
     const [nfts, setNfts] = useState({});
     // return useNFTBalances({ address: address });
@@ -54,23 +67,12 @@ export function useMainnetNFTLoader(address) {
     return nfts;
 }
 
-const getFromIPFS = async hashToGet => {
-    for await (const file of ipfs.get(hashToGet)) {
-        console.log(file.path);
-        if (!file.content) continue;
-        const content = new BufferList();
-        for await (const chunk of file.content) {
-            content.append(chunk);
-        }
-        console.log(content);
-        return content;
-    }
-};
-
 export function useLocalNFTLoader(address, localContracts) {
     const [nfts, setNfts] = useState({});
     useEffect(async () => {
         const collectibleUpdate = [];
+        const token_address = localContracts.NilToken.address;
+        const symbol = await localContracts.NilToken.symbol();
         for (let tokenIndex = 0; tokenIndex < 4; tokenIndex++) {
             try {
                 console.log("Getting token index", tokenIndex);
@@ -87,7 +89,13 @@ export function useLocalNFTLoader(address, localContracts) {
                 try {
                     const jsonManifest = JSON.parse(jsonManifestBuffer.toString());
                     console.log("jsonManifest", jsonManifest);
-                    collectibleUpdate.push({ id: tokenId, uri: tokenURI, owner: address, ...jsonManifest });
+                    collectibleUpdate.push({
+                        token_id: tokenId.toString(),
+                        token_uri: tokenURI,
+                        symbol: symbol,
+                        token_address: token_address,
+                        owner: address, ...jsonManifest
+                    });
                 } catch (e) {
                     console.log(e);
                 }
