@@ -6,7 +6,7 @@ import ReactDOM from "react-dom";
 import App from "./App";
 import "./index.css";
 import { MoralisProvider } from "react-moralis";
-
+import { Moralis } from "moralis";
 const themes = {
   dark: `${process.env.PUBLIC_URL}/dark-theme.css`,
   light: `${process.env.PUBLIC_URL}/light-theme.css`,
@@ -21,15 +21,17 @@ const client = new ApolloClient({
   cache: new InMemoryCache(),
 });
 
+const serverUrl = "https://lsr4tyg35ty1.usemoralis.com:2053/server";
+const appId = "pnISdMHbafrlU84mqgeNz121brLV7baAML4VQ1m4";
+Moralis.start({ serverUrl, appId });
+
 ReactDOM.render(
-  <MoralisProvider appId="pnISdMHbafrlU84mqgeNz121brLV7baAML4VQ1m4" serverUrl="https://lsr4tyg35ty1.usemoralis.com:2053/server">
-    <ApolloProvider client={client}>
-      <ThemeSwitcherProvider themeMap={themes} defaultTheme={prevTheme || "light"}>
-        <BrowserRouter>
-          <App subgraphUri={subgraphUri} />
-        </BrowserRouter>
-      </ThemeSwitcherProvider>
-    </ApolloProvider>
-  </MoralisProvider>,
-  document.getElementById("root"),
+  <ApolloProvider client={client}>
+    <ThemeSwitcherProvider themeMap={themes} defaultTheme={prevTheme || "light"}>
+      <BrowserRouter>
+        <App subgraphUri={subgraphUri} />
+      </BrowserRouter>
+    </ThemeSwitcherProvider>
+  </ApolloProvider>,
+  document.getElementById("root")
 );

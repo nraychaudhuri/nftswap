@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNFTBalances } from "react-moralis";
+// import { useNFTBalances } from "react-moralis";
+import { Moralis } from "moralis";
 import {
     useContractReader,
 } from "eth-hooks";
@@ -8,8 +9,49 @@ const ipfsAPI = require("ipfs-http-client");
 const ipfs = ipfsAPI({ host: "ipfs.infura.io", port: "5001", protocol: "https" });
 const { BufferList } = require("bl");
 
+const replaceIpfsMaybe = (url) => {
+    return url?.replace("ipfs://", "https://ipfs.io/ipfs/");
+}
+
 export function useMainnetNFTLoader(address) {
-    return useNFTBalances({ address: address });
+    const [nfts, setNfts] = useState({});
+    // return useNFTBalances({ address: address });
+    useEffect(async () => {
+        const response = await Moralis.Web3API.account.getNFTs({ address: address });
+        console.log("NFTS>>>>>>>>. ", response);
+        const nfts = response.result.map(n => {
+            const contract_type = n.contract_type;
+            //sometimes meta data could be blank
+            const metadata = JSON.parse(n.metadata);
+            const image = replaceIpfsMaybe(metadata?.image);
+            const image_data = metadata?.image_data;
+            const metaDataName = metadata?.name;
+            const metaDataDescription = metadata?.description;
+            const name = n.name;
+            const symbol = n.symbol;
+            const token_address = n.token_address;
+            const token_id = n.token_id;
+            const token_uri = n.token_uri
+            return {
+                name: metaDataName ?? name,
+                description: metaDataDescription,
+                image: image,
+                image_data: image_data,
+                symbol: symbol,
+                contract_type: contract_type,
+                token_address: token_address,
+                token_id: token_id,
+                token_uri: token_uri
+            }
+        })
+        setNfts({
+            data: nfts,
+            error: null,
+            isLoading: false,
+            isFetching: false
+        });
+    }, [address])
+    return nfts;
 }
 
 const getFromIPFS = async hashToGet => {
