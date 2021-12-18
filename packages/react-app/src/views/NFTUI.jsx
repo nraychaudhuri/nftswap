@@ -1,6 +1,6 @@
 import { SyncOutlined } from "@ant-design/icons";
 import { utils } from "ethers";
-import { Button, Card, DatePicker, Divider, Input, Progress, Slider, Spin, Switch } from "antd";
+import { Button, Card, DatePicker, Divider, Input, Progress, Slider, Spin, Switch, Space } from "antd";
 import React, { useState } from "react";
 import { Address, Balance, Events } from "../components";
 import { Image, Tooltip, Modal, Skeleton } from "antd";
@@ -50,12 +50,12 @@ export default function NFTUI({
       {/*
         ⚙️ Here is an example UI that displays and sets the purpose in your smart contract:
       */}
-      <div style={{ border: "1px solid #cccccc", padding: 16, width: 400, margin: "auto", marginTop: 64 }}>
+      <div style={{ padding: 16, width: "90%", margin: "auto", marginTop: 64 }}>
         <h2>NFT UI:</h2>
         <Divider />
         <>
           <div style={styles.NFTs}>
-            <Skeleton loading={!nfts.data}>
+            <Space size={[16, 32]} wrap>
               {nfts.data &&
                 nfts.data.map((nft, index) => (
                   <Card
@@ -89,7 +89,7 @@ export default function NFTUI({
                     <Meta title={nft.name} description={nft.description ?? nft.token_address} />
                   </Card>
                 ))}
-            </Skeleton>
+            </Space>
           </div>
         </>
       </div>

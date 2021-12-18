@@ -71,8 +71,8 @@ export function useLocalNFTLoader(address, localContracts) {
     const [nfts, setNfts] = useState({});
     useEffect(async () => {
         const collectibleUpdate = [];
-        const token_address = localContracts.NilToken.address;
-        const symbol = await localContracts.NilToken.symbol();
+        const token_address = localContracts.NilToken?.address;
+        const symbol = await localContracts.NilToken?.symbol();
         for (let tokenIndex = 0; tokenIndex < 4; tokenIndex++) {
             try {
                 console.log("Getting token index", tokenIndex);
