@@ -75,7 +75,7 @@ function App(props) {
 
   const [injectedProvider, setInjectedProvider] = useState();
   const [address, setAddress] = useState();
-  const [selectedNetwork, setSelectedNetwork] = useState(networkOptions[2]);
+  const [selectedNetwork, setSelectedNetwork] = useState(networkOptions[0]);
   const location = useLocation();
 
   /// 📡 What chain are your contracts deployed to?
@@ -111,13 +111,15 @@ function App(props) {
   /* 🔥 This hook will get the price of Gas from ⛽️ EtherGasStation */
   const gasPrice = useGasPrice(targetNetwork, "fast");
   // Use your injected provider from 🦊 Metamask or if you don't have it then instantly generate a 🔥 burner wallet.
-  const userProviderAndSigner = useUserProviderAndSigner(injectedProvider, localProvider);
+  const userProviderAndSigner = useUserProviderAndSigner(injectedProvider);
   const userSigner = userProviderAndSigner.signer;
 
   useEffect(() => {
     async function getAddress() {
       if (userSigner) {
+        console.log("Getting new address1");
         const newAddress = await userSigner.getAddress();
+        console.log("Getting new address2 ", newAddress);
         setAddress(newAddress);
       }
     }
@@ -215,6 +217,9 @@ function App(props) {
     const provider = await web3Modal.connect();
     setInjectedProvider(new ethers.providers.Web3Provider(provider));
 
+    //TODO: create or sign in account
+    //set account address so that we can fetch nfts
+
     provider.on("chainChanged", chainId => {
       console.log(`chain changed to ${chainId}! updating providers`);
       setInjectedProvider(new ethers.providers.Web3Provider(provider));
@@ -256,7 +261,7 @@ function App(props) {
           <Link to="/">App Home</Link>
         </Menu.Item>
         <Menu.Item key="/nfts">
-          <Link to="/nfts">NFTs</Link>
+          <Link to="/nfts">My Collection</Link>
         </Menu.Item>
         <Menu.Item key="/debug">
           <Link to="/debug">Debug Contracts</Link>
