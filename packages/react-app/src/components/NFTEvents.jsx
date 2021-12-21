@@ -10,9 +10,11 @@ export default function NFTEvents({ address }) {
   const [events, setEvents] = useState();
 
   useEffect(async () => {
-    const response = await Moralis.Web3API.account.getNFTTransfers({ address: address });
+    //only get last 10 events
+    const response = await Moralis.Web3API.account.getNFTTransfers({ address: address, limit: 10 });
     console.log(">>>> Response ", response);
-    setEvents(response.result);
+    //TOOD: We have to handle more
+    setEvents(response.result.slice(0, 10));
   }, [address]);
   return (
     <div style={{ width: 600, margin: "auto", marginTop: 32, paddingBottom: 32 }}>
