@@ -5,7 +5,7 @@ import { ERC721ABI } from "../contracts/erc721_abi";
 import { getNFT } from "../libs/NFTLoader";
 import NFTCard from "../components/NFTCard";
 
-export default function SwapOffers({ address, provider, localContracts }) {
+export default function SwapOffers({ address, provider, localContracts, writeContracts }) {
 
   const [offers, setOffers] = useState([])
   useEffect(async () => {
@@ -23,26 +23,33 @@ export default function SwapOffers({ address, provider, localContracts }) {
     }
   }, [address])
 
+  const acceptSwap = async (offer) => {
+    await writeContracts.NilToken.approve(localContracts.SwapBook.address, offer.myNft.token_id);
+    const receipt = await writeContracts.SwapBook
+      .acceptOffer(offer.offerId);
+    console.log("receipt ", receipt);
+  }
+
   return (
     <div style={{ width: "60%", margin: "auto", marginTop: 32, paddingBottom: 32, alignItems: "center" }}>
       <h2>Offers:</h2>
       <List
         bordered
         dataSource={offers}
-        renderItem={item => {
+        renderItem={offer => {
           return (
-            <List.Item key={item}>
+            <List.Item key={offer}>
               <List.Item.Meta
-                title={"Swap Offer" + item.offerId}
+                title={"Swap Offer" + offer.offerId}
               />
-              <NFTCard nft={item.myNft} key={item.myNft.tokenURI + "-" + item.myNft.token_address} actions={[
+              <NFTCard nft={offer.myNft} key={offer.myNft.token_uri + "-" + offer.myNft.token_address} actions={[
               ]} />
-              <NFTCard nft={item.otherNft} key={item.otherNft.tokenURI + "-" + item.otherNft.token_address} actions={[
+              <NFTCard nft={offer.otherNft} key={offer.otherNft.token_uri + "-" + offer.otherNft.token_address} actions={[
               ]} />
               <div>
                 <Button
                   onClick={() => {
-                    sendTransaction()
+                    acceptSwap(offer)
                   }}
                   size="large"
                   shape="round"

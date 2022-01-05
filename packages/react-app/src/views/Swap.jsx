@@ -43,7 +43,7 @@ export default function Swap({
         setSwapOffer(swapOffer);
     }, [otherAddress])
 
-    const sendTransaction = async () => {
+    const requestSwap = async () => {
         await writeContracts.NilToken.approve(localContracts.SwapBook.address, swapOffer.requestorTokenId);
         const receipt = await writeContracts.SwapBook
             .requestSwap(swapOffer.requestorTokenAddress, swapOffer.requestorTokenId, otherAddress, swapOffer.receiverTokenAddress, swapOffer.receiverTokenId)
@@ -90,7 +90,7 @@ export default function Swap({
                         <Col span={8} style={{ textAlign: "center", opacity: 1 }}>
                             <Button
                                 onClick={() => {
-                                    sendTransaction()
+                                    requestSwap()
                                 }}
                                 size="large"
                                 shape="round"

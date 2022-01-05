@@ -306,6 +306,7 @@ function App(props) {
             localProvider={localProvider}
             localContracts={readContracts}
             targetNetwork={targetNetwork}
+            writeContracts={writeContracts}
           />
         </Route>
         <Route path="/explore/to/swap/:otherAddress">

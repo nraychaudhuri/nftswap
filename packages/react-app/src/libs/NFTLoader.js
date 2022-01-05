@@ -101,6 +101,7 @@ export const getNFT = async (nftAddress, nftId, ownerAddress, provider) => {
     const jsonManifest = JSON.parse(jsonManifestBuffer.toString());
     console.log("jsonManifest", jsonManifest);
     return {
+        token_id: nftId.toString(),
         token_uri: tokenURI,
         symbol: symbol,
         token_address: nftAddress,

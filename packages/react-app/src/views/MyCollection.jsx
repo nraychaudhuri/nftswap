@@ -28,7 +28,8 @@ export default function NFTUI({
   mainnetProvider,
   localProvider,
   localContracts,
-  targetNetwork
+  targetNetwork,
+  writeContracts
 }) {
 
   const createSvg = (text) => { return { __html: text }; };
@@ -66,7 +67,7 @@ export default function NFTUI({
           : <><h2>Please connect your wallet to see your NFTs</h2></>
         }
       </div>
-      <SwapOffers localContracts={localContracts} address={address} provider={localProvider} />
+      <SwapOffers localContracts={localContracts} address={address} provider={localProvider} writeContracts={writeContracts} />
       {/*
         📑 Maybe display a list of events?
           (uncomment the event and emit line in YourContract.sol! )
