@@ -1,16 +1,26 @@
 import { useState, useEffect } from "react";
 // import { useNFTBalances } from "react-moralis";
 import { Moralis } from "moralis";
-import {
-    useContractReader,
-} from "eth-hooks";
+import { Contract } from 'ethers';
+import { ERC721ABI } from "../contracts/erc721_abi";
 
 const ipfsAPI = require("ipfs-http-client");
 const ipfs = ipfsAPI({ host: "ipfs.infura.io", port: "5001", protocol: "https" });
 const { BufferList } = require("bl");
 
+const hardcodedAddresses = ["mrclean.eth", "austingriffith.eth", "0x426ab67a5bdbf55dda4b5ad15972b263cab4e540", "0x5e577d19cd9a97dcf08f89ba927a3be2ca5b2106", "0xa8da6166cbd2876ccde424ee2a717c355be4702b"]
+
 const replaceIpfsMaybe = (url) => {
     return url?.replace("ipfs://", "https://ipfs.io/ipfs/");
+}
+
+export const loadTestNFTWallets = async (localContracts) => {
+    const testWallets = ["0x3f88A4ce6A71Bb2308E231855380D373A7241861", "0x3a4535E25fD02c757EBfdaE38ed99593c634ce65"]
+    const allPromises = testWallets.map(async (address) => {
+        const nfts = await getLocalNFTs(address, localContracts);
+        return { address: address, nfts: nfts };
+    })
+    return await Promise.all(allPromises);
 }
 
 const getFromIPFS = async hashToGet => {
@@ -25,6 +35,13 @@ const getFromIPFS = async hashToGet => {
         return content;
     }
 };
+
+export async function resolveAndGetNFTs(provider, address) {
+    const resolvedAddress = await provider?.resolveName(address);
+    console.log(">>>> Resolved address ", resolvedAddress);
+    const nfts = await getNFTs(resolvedAddress);
+    return nfts;
+}
 
 export async function getNFTs(address) {
     const response = await Moralis.Web3API.account.getNFTs({ address: address });
@@ -57,11 +74,10 @@ export async function getNFTs(address) {
     return nfts;
 }
 
-export function useMainnetNFTLoader(address) {
+export function useMainnetNFTLoader(mainnetProvider, address) {
     const [nfts, setNfts] = useState({});
-    // return useNFTBalances({ address: address });
     useEffect(async () => {
-        const nfts = await getNFTs(address);
+        const nfts = await resolveAndGetNFTs(mainnetProvider, address);
         setNfts({
             data: nfts,
             error: null,
@@ -72,30 +88,69 @@ export function useMainnetNFTLoader(address) {
     return nfts;
 }
 
+export const getNFT = async (nftAddress, nftId, ownerAddress, provider) => {
+    const erc721 = new Contract(nftAddress, ERC721ABI, provider);
+    const symbol = await erc721.symbol();
+    const tokenURI = await erc721.tokenURI(nftId);
+    console.log("tokenURI", tokenURI);
+
+    const ipfsHash = tokenURI.replace("https://ipfs.io/ipfs/", "");
+    console.log("ipfsHash", ipfsHash);
+
+    const jsonManifestBuffer = await getFromIPFS(ipfsHash);
+    const jsonManifest = JSON.parse(jsonManifestBuffer.toString());
+    console.log("jsonManifest", jsonManifest);
+    return {
+        token_uri: tokenURI,
+        symbol: symbol,
+        token_address: nftAddress,
+        owner: ownerAddress, ...jsonManifest
+    };
+}
+
+export const getLocalNFTs = async (address, localContracts) => {
+    if (!localContracts.NilToken) {
+        return []
+    }
+
+    const token_address = localContracts.NilToken?.address;
+    const symbol = await localContracts.NilToken?.symbol();
+    const allPromises = [0, 1, 2].map(async (i) => {
+        const tokenId = await localContracts.NilToken.tokenOfOwnerByIndex(address, i);
+        const tokenURI = await localContracts.NilToken.tokenURI(tokenId);
+        const ipfsHash = tokenURI.replace("https://ipfs.io/ipfs/", "");
+        const jsonManifestBuffer = await getFromIPFS(ipfsHash);
+        const jsonManifest = JSON.parse(jsonManifestBuffer.toString());
+        return {
+            token_id: tokenId.toString(),
+            token_uri: tokenURI,
+            token_index: i,
+            symbol: symbol,
+            token_address: token_address,
+            owner: address, ...jsonManifest
+        };
+    })
+    const nfts = await Promise.all(allPromises);
+    return nfts;
+}
+
 export function useLocalNFTLoader(address, localContracts) {
     const [nfts, setNfts] = useState({});
     useEffect(async () => {
         const collectibleUpdate = [];
         const token_address = localContracts.NilToken?.address;
         const symbol = await localContracts.NilToken?.symbol();
-        for (let tokenIndex = 0; tokenIndex < 4; tokenIndex++) {
+        for (let tokenIndex = 0; tokenIndex < 3; tokenIndex++) {
             try {
-                console.log("Getting token index", tokenIndex);
                 const tokenId = await localContracts.NilToken.tokenOfOwnerByIndex(address, tokenIndex);
-                console.log("tokenId", tokenId);
                 const tokenURI = await localContracts.NilToken.tokenURI(tokenId);
-                console.log("tokenURI", tokenURI);
-
                 const ipfsHash = tokenURI.replace("https://ipfs.io/ipfs/", "");
-                console.log("ipfsHash", ipfsHash);
-
                 const jsonManifestBuffer = await getFromIPFS(ipfsHash);
-
                 try {
                     const jsonManifest = JSON.parse(jsonManifestBuffer.toString());
-                    console.log("jsonManifest", jsonManifest);
                     collectibleUpdate.push({
                         token_id: tokenId.toString(),
+                        token_index: tokenIndex,
                         token_uri: tokenURI,
                         symbol: symbol,
                         token_address: token_address,

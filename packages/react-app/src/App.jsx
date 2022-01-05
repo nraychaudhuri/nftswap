@@ -29,7 +29,7 @@ import externalContracts from "./contracts/external_contracts";
 // contracts
 import deployedContracts from "./contracts/hardhat_contracts.json";
 import { Transactor, Web3ModalSetup } from "./helpers";
-import { Home, NFTUI } from "./views";
+import { Home, MyCollection, Swap } from "./views";
 import { useStaticJsonRPC } from "./hooks";
 
 const { ethers } = require("ethers");
@@ -75,7 +75,7 @@ function App(props) {
 
   const [injectedProvider, setInjectedProvider] = useState();
   const [address, setAddress] = useState();
-  const [selectedNetwork, setSelectedNetwork] = useState(networkOptions[0]);
+  const [selectedNetwork, setSelectedNetwork] = useState(networkOptions[2]);
   const location = useLocation();
 
   /// 📡 What chain are your contracts deployed to?
@@ -258,8 +258,8 @@ function App(props) {
         <Menu.Item key="/">
           <Link to="/">App Home</Link>
         </Menu.Item>
-        <Menu.Item key="/nfts">
-          <Link to="/nfts">My Collection</Link>
+        <Menu.Item key="/mycollection">
+          <Link to="/mycollection">My Collection</Link>
         </Menu.Item>
         <Menu.Item key="/debug">
           <Link to="/debug">Debug Contracts</Link>
@@ -272,7 +272,7 @@ function App(props) {
       <Switch>
         <Route exact path="/">
           {/* pass in any web3 props to this Home component. For example, yourLocalBalance */}
-          <Home mainnetProvider={mainnetProvider} />
+          <Home targetNetwork={targetNetwork} localContracts={readContracts} />
         </Route>
         <Route exact path="/debug">
           {/*
@@ -289,18 +289,32 @@ function App(props) {
             blockExplorer={blockExplorer}
             contractConfig={contractConfig}
           />
-        </Route>
-        <Route path="/nfts">
-          <NFTUI
+          <Contract
+            name="SwapBook"
+            price={price}
+            signer={userSigner}
+            provider={localProvider}
             address={address}
-            userSigner={userSigner}
+            blockExplorer={blockExplorer}
+            contractConfig={contractConfig}
+          />
+        </Route>
+        <Route path="/mycollection">
+          <MyCollection
+            address={address}
             mainnetProvider={mainnetProvider}
             localProvider={localProvider}
-            yourLocalBalance={yourLocalBalance}
-            price={price}
-            tx={tx}
             localContracts={readContracts}
-            mainnetContracts={mainnetContracts}
+            targetNetwork={targetNetwork}
+          />
+        </Route>
+        <Route path="/explore/to/swap/:otherAddress">
+          <Swap
+            userAddress={address}
+            mainnetProvider={mainnetProvider}
+            localProvider={localProvider}
+            localContracts={readContracts}
+            writeContracts={writeContracts}
             targetNetwork={targetNetwork}
           />
         </Route>

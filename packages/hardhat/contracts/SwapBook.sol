@@ -36,21 +36,12 @@ contract SwapBook {
         uint256 indexed offerId
     );
 
-    //Not sure yet what should be stored on-chain vs off-chain
-    //requestSwap
-    //view Offers
-    //accept Offer
-    //finalize swap
-    //cancel offer
+    //TODO: Setup owner specific controls
+    //TODO: What happens when someone sends eth to the contract??
 
     constructor() {
         // what should we do on deploy?
     }
-
-    // modifier onlyLINK() {
-    //     require(msg.sender == address(LINK), "Must use LINK token");
-    //     _;
-    // }
 
     function requestSwap(
         address requestorNftAddress,

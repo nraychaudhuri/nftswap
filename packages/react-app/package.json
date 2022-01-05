@@ -15,8 +15,6 @@
     ]
   },
   "dependencies": {
-    "moralis": "^0.0.154",
-    "react-moralis": "^0.3.1",
     "@ant-design/icons": "^4.2.2",
     "@apollo/client": "^3.3.21",
     "@apollo/react-hooks": "^4.0.0",
@@ -43,6 +41,7 @@
     "graphiql": "^1.4.7",
     "graphql": "^15.3.0",
     "isomorphic-fetch": "^3.0.0",
+    "moralis": "^0.0.154",
     "node-watch": "^0.7.1",
     "postcss": "^8.2.6",
     "qrcode.react": "^1.0.0",
@@ -50,9 +49,12 @@
     "react-blockies": "^1.4.1",
     "react-css-theme-switcher": "^0.2.2",
     "react-dom": "^17.0.2",
+    "react-moralis": "^0.3.1",
     "react-qr-reader": "^2.2.1",
     "react-router-dom": "^5.2.0",
     "react-scripts": "4.0.0",
+    "react-slick": "^0.28.1",
+    "slick-carousel": "^1.8.1",
     "walletlink": "^2.1.5",
     "web3modal": "^1.9.1"
   },
