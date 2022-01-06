@@ -57,6 +57,18 @@ describe("SwapBook", function () {
         await approveTxn.wait();
     }
 
+    const offersReceived = async (address) => {
+        const swapRequestEventFilter = book.filters.SwapRequested(null, address);
+        const events = await book.queryFilter(swapRequestEventFilter);
+        return events.map(e => e.args.offerId);
+    }
+
+    const swapRequestsMade = async (address) => {
+        const swapRequestEventFilter = book.filters.SwapRequested(address);
+        const events = await book.queryFilter(swapRequestEventFilter);
+        return events.map(e => e.args.offerId);
+    }
+
     beforeEach(async () => {
         const SwapBook = await ethers.getContractFactory("SwapBook");
         const bookTxn = await SwapBook.deploy();
@@ -119,7 +131,7 @@ describe("SwapBook", function () {
         const txn2 = await book.connect(owner).requestSwap(ownerNfts[0].address, ownerNfts[0].tokenId, receiverAddress, receiverNfts[1].address, receiverNfts[1].tokenId);
         await txn2.wait();
 
-        const offers = await book.offersReceived(receiverAddress);
+        const offers = await offersReceived(receiverAddress);
         expect(offers.length).to.equal(3);
         const offer1 = await book.getOffer(offers[0]);
         const offer2 = await book.getOffer(offers[1]);
@@ -144,18 +156,18 @@ describe("SwapBook", function () {
         const txn1 = await book.connect(owner).requestSwap(ownerNfts[0].address, ownerNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId);
         await txn1.wait();
 
-        const swapRequests = await book.swapRequestsMade(requestorAddress);
+        const swapRequests = await swapRequestsMade(requestorAddress);
         expect(swapRequests.length).to.equal(1);
         const offer1 = await book.getOffer(swapRequests[0]);
 
         expect(offer1.receiverAddress.toLowerCase()).to.equal(receiverAddress.toLowerCase())
 
-        const swapRequests1 = await book.swapRequestsMade(ownerAddress);
+        const swapRequests1 = await swapRequestsMade(ownerAddress);
         expect(swapRequests1.length).to.equal(1);
         const offer2 = await book.getOffer(swapRequests1[0]);
         expect(offer2.receiverAddress.toLowerCase()).to.equal(receiverAddress.toLowerCase())
 
-        const swapRequests2 = await book.swapRequestsMade(receiverAddress);
+        const swapRequests2 = await swapRequestsMade(receiverAddress);
         expect(swapRequests2.length).to.equal(0);
     });
 
@@ -188,7 +200,7 @@ describe("SwapBook", function () {
         approveContract(requestor, bookAddress, requestorNfts[0].tokenId);
         const txn1 = await book.connect(requestor).requestSwap(requestorNfts[0].address, requestorNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId);
         await txn1.wait();
-        const offers = await book.offersReceived(receiverAddress);
+        const offers = await offersReceived(receiverAddress);
 
         const txn = await book
             .connect(receiver)
@@ -203,7 +215,7 @@ describe("SwapBook", function () {
         approveContract(requestor, bookAddress, requestorNfts[0].tokenId);
         const txn1 = await book.connect(requestor).requestSwap(requestorNfts[0].address, requestorNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId);
         await txn1.wait();
-        const offers = await book.offersReceived(receiverAddress);
+        const offers = await offersReceived(receiverAddress);
 
         const txn = await book
             .connect(owner)
@@ -218,7 +230,7 @@ describe("SwapBook", function () {
         approveContract(requestor, bookAddress, requestorNfts[0].tokenId);
         const txn1 = await book.connect(requestor).requestSwap(requestorNfts[0].address, requestorNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId);
         await txn1.wait();
-        const offers = await book.offersReceived(receiverAddress);
+        const offers = await offersReceived(receiverAddress);
 
         const txn = await book
             .connect(receiver)
@@ -228,12 +240,13 @@ describe("SwapBook", function () {
         expect(txn.message).to.equal("VM Exception while processing transaction: reverted with reason string 'Only receiver of the offer can accept offer'");
     });
 
-    it("execute offer when both party approved the contract", async function () {
+    it("execute offer when both party approved the contract and receiver accepted the offer", async function () {
         approveContract(requestor, bookAddress, requestorNfts[0].tokenId);
         const txn1 = await book.connect(requestor).requestSwap(requestorNfts[0].address, requestorNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId);
         await txn1.wait();
-        const offers = await book.offersReceived(receiverAddress);
-
+        const offers = await offersReceived(receiverAddress);
+        const offer = await book.getOffer(offers[0]);
+        expect(offer.isAccepted).to.equal(false);
         approveContract(receiver, bookAddress, receiverNfts[0].tokenId);
         const txn = await book.connect(receiver).acceptOffer(offers[0])
         const receipt = await txn.wait();
@@ -244,6 +257,10 @@ describe("SwapBook", function () {
         expect(newOwner1).to.equal(receiverAddress);
         const newOwner2 = await nilToken.ownerOf(receiverNfts[0].tokenId);
         expect(newOwner2).to.equal(requestorAddress);
+
+        const acceptedOffer = await book.getOffer(offers[0]);
+        expect(acceptedOffer.isAccepted).to.equal(true);
+
         // const eventFilter = nilToken.filters.Transfer();
         // const events = await nilToken.queryFilter(eventFilter);
         // console.log("events ", events);
@@ -257,7 +274,7 @@ describe("SwapBook", function () {
         approveContract(requestor, bookAddress, requestorNfts[0].tokenId);
         const txn1 = await book.connect(requestor).requestSwap(requestorNfts[0].address, requestorNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId);
         await txn1.wait();
-        const offers = await book.offersReceived(receiverAddress);
+        const offers = await offersReceived(receiverAddress);
 
         //remove the approval
         approveContract(requestor, ownerAddress, requestorNfts[0].tokenId);

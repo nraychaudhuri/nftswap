@@ -9,17 +9,19 @@ export default function SwapOffers({ address, provider, localContracts, writeCon
 
   const [offers, setOffers] = useState([])
   useEffect(async () => {
-    const offerIds = await localContracts.SwapBook?.offersReceived(address);
-    if (offerIds) {
+    const swapRequestEventFilter = localContracts.SwapBook?.filters.SwapRequested(null, address);
+    const events = await localContracts.SwapBook?.queryFilter(swapRequestEventFilter);
+    if (events) {
+      const offerIds = events.map(e => e.args.offerId)
       const promises = await offerIds?.map(async (element) => {
-        const [requestorAddress, requestorNftAddress, requestorNftId, receiverAddress, receiverNftAddress, receiverNftId] =
+        const [requestorAddress, requestorNftAddress, requestorNftId, receiverAddress, receiverNftAddress, receiverNftId, isAccepted] =
           await localContracts.SwapBook.getOffer(element);
         const requestorNft = await getNFT(requestorNftAddress, requestorNftId, requestorAddress, provider);
         const userNft = await getNFT(receiverNftAddress, receiverNftId, receiverAddress, provider);
-        return { offerId: element, otherNft: requestorNft, myNft: userNft };
+        return { offerId: element, otherNft: requestorNft, myNft: userNft, isAccepted: isAccepted };
       })
       const offers = await Promise.all(promises);
-      setOffers(offers);
+      setOffers(offers.filter(offer => !offer.isAccepted));
     }
   }, [address])
 

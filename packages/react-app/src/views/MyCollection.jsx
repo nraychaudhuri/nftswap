@@ -32,7 +32,6 @@ export default function NFTUI({
   writeContracts
 }) {
 
-  const createSvg = (text) => { return { __html: text }; };
   // const nfts = targetNetwork.name === "mainnet" ? useMainnetNFTLoader(mainnetProvider, "0xaB8046D6D79569895653086C1F83AcFC5a1703Fa") : useLocalNFTLoader(address, localContracts)
   const nfts = useLocalNFTLoader(address, localContracts)
   return (
@@ -68,21 +67,6 @@ export default function NFTUI({
         }
       </div>
       <SwapOffers localContracts={localContracts} address={address} provider={localProvider} writeContracts={writeContracts} />
-      {/*
-        📑 Maybe display a list of events?
-          (uncomment the event and emit line in YourContract.sol! )
-      */}
-      {/* {targetNetwork.name === "mainnet" ?
-        <NFTEvents address={"0xaB8046D6D79569895653086C1F83AcFC5a1703Fa"} /> :
-        <Events
-          contracts={localContracts}
-          contractName="NilToken"
-          eventName="Transfer"
-          localProvider={localProvider}
-          mainnetProvider={mainnetProvider}
-          startBlock={1}
-        />
-      } */}
     </div>
   );
 }
