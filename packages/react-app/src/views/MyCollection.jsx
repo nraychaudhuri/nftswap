@@ -44,8 +44,8 @@ export default function NFTUI({
           <>
             <div style={styles.NFTs}>
               <Space size={[16, 32]} wrap>
-                {nfts.data &&
-                  nfts.data.map((nft, index) => (
+                {nfts &&
+                  nfts.map((nft, index) => (
                     <NFTCard nft={nft} key={index} actions={[
                       <Tooltip title="View On Blockexplorer">
                         <FileSearchOutlined

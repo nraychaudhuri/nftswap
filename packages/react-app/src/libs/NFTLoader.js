@@ -113,10 +113,11 @@ export const getLocalNFTs = async (address, localContracts) => {
     if (!localContracts.NilToken) {
         return []
     }
-
     const token_address = localContracts.NilToken?.address;
     const symbol = await localContracts.NilToken?.symbol();
-    const allPromises = [0, 1, 2].map(async (i) => {
+    const balance = await localContracts.NilToken.balanceOf(address);
+    //create range of values from balance
+    const allPromises = Array.from({ length: balance }, (v, i) => i).map(async (i) => {
         const tokenId = await localContracts.NilToken.tokenOfOwnerByIndex(address, i);
         const tokenURI = await localContracts.NilToken.tokenURI(tokenId);
         const ipfsHash = tokenURI.replace("https://ipfs.io/ipfs/", "");
@@ -136,42 +137,11 @@ export const getLocalNFTs = async (address, localContracts) => {
 }
 
 export function useLocalNFTLoader(address, localContracts) {
-    const [nfts, setNfts] = useState({});
+    const [nfts, setNfts] = useState([]);
     useEffect(async () => {
         if (address && localContracts.NilToken) {
-            const collectibleUpdate = [];
-            const token_address = localContracts.NilToken.address;
-            const symbol = await localContracts.NilToken.symbol();
-            const balance = await localContracts.NilToken.balanceOf(address);
-            for (let tokenIndex = 0; tokenIndex < balance; tokenIndex++) {
-                try {
-                    const tokenId = await localContracts.NilToken.tokenOfOwnerByIndex(address, tokenIndex);
-                    const tokenURI = await localContracts.NilToken.tokenURI(tokenId);
-                    const ipfsHash = tokenURI.replace("https://ipfs.io/ipfs/", "");
-                    const jsonManifestBuffer = await getFromIPFS(ipfsHash);
-                    try {
-                        const jsonManifest = JSON.parse(jsonManifestBuffer.toString());
-                        collectibleUpdate.push({
-                            token_id: tokenId.toString(),
-                            token_index: tokenIndex,
-                            token_uri: tokenURI,
-                            symbol: symbol,
-                            token_address: token_address,
-                            owner: address, ...jsonManifest
-                        });
-                    } catch (e) {
-                        console.log(e);
-                    }
-                } catch (e) {
-                    console.log(e);
-                }
-            }
-            setNfts({
-                data: collectibleUpdate,
-                error: null,
-                isLoading: false,
-                isFetching: false
-            });
+            const nfts = await getLocalNFTs(address, localContracts);
+            setNfts(nfts);
         }
     }, [address, localContracts]);
     //use local network
