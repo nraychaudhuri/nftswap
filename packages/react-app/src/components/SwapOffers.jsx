@@ -1,16 +1,15 @@
 import { List, Skeleton, Button } from "antd";
 import { useEffect, useState } from "react";
-import { Contract } from 'ethers';
-import { ERC721ABI } from "../contracts/erc721_abi";
 import { getNFT } from "../libs/NFTLoader";
 import NFTCard from "../components/NFTCard";
+
+import { queryOffersReceived } from "../helpers/SwapEventHandler";
 
 export default function SwapOffers({ address, provider, localContracts, writeContracts }) {
 
   const [offers, setOffers] = useState([])
   useEffect(async () => {
-    const swapRequestEventFilter = localContracts.SwapBook?.filters.SwapRequested(null, address);
-    const events = await localContracts.SwapBook?.queryFilter(swapRequestEventFilter);
+    const events = await queryOffersReceived(localContracts.SwapBook, address);
     if (events) {
       const offerIds = events.map(e => e.args.offerId)
       const promises = await offerIds?.map(async (element) => {

@@ -4,6 +4,8 @@ import { getLocalNFTs } from "../libs/NFTLoader";
 import { useParams } from "react-router-dom";
 import NFTSlider from "../components/NFTSlider";
 import { useEffect } from "react";
+import { notifyWhenSwapRequested } from "../helpers/SwapEventHandler";
+import { Redirect } from "react-router-dom";
 
 const { Meta } = Card;
 
@@ -35,13 +37,20 @@ export default function Swap({
 
     const [swapOffer, setSwapOffer] = useState({})
 
+    const [redirect, setRedirect] = useState(null);
+
     useEffect(() => {
-        const swapOffer = {
-            receiverAddress: otherAddress,
-            requestorAddress: userAddress
+        if (userAddress && otherAddress) {
+            const swapOffer = {
+                receiverAddress: otherAddress,
+                requestorAddress: userAddress
+            }
+            setSwapOffer(swapOffer);
+            notifyWhenSwapRequested(writeContracts.SwapBook, userAddress, (myAddress, otherAddress, offerId) => {
+                setRedirect(true);
+            });
         }
-        setSwapOffer(swapOffer);
-    }, [otherAddress])
+    }, [userAddress, otherAddress])
 
     const requestSwap = async () => {
         await writeContracts.NilToken.approve(localContracts.SwapBook.address, swapOffer.requestorTokenId);
@@ -79,32 +88,41 @@ export default function Swap({
         }
     }, [otherAddress, userAddress, targetNetwork]);
     return (
-        <div>
-            <h2>Collection of {otherAddress}</h2>
-            <NFTSlider nfts={otherNfts} nftSelector={selectReceiverNft} />
-            <h2>Your Collection</h2>
-            <NFTSlider nfts={userNfts} nftSelector={selectRequestorNft} />
-            {readyToSwap ?
-                <div style={{ position: "fixed", textAlign: "left", right: 10, bottom: "40%", padding: 10 }}>
-                    <Row align="middle" gutter={[4, 4]}>
-                        <Col span={8} style={{ textAlign: "center", opacity: 1 }}>
-                            <Button
-                                onClick={() => {
-                                    requestSwap()
-                                }}
-                                size="large"
-                                shape="round"
-                            >
-                                <span style={{ marginRight: 8 }} role="img" aria-label="support">
-                                    🔀
-                                </span>
-                                Request Swap
-                            </Button>
-                        </Col>
-                    </Row>
-                </div> : <></>
-            }
+        <>
+            {
+                redirect ? <Redirect
+                    to={{
+                        pathname: "/mycollection",
+                        state: { message: "Your Offer is sent. You will be notified when the offer is accepted" }
+                    }}
+                /> :
+                    <div>
+                        <h2>Collection of {otherAddress}</h2>
+                        <NFTSlider nfts={otherNfts} nftSelector={selectReceiverNft} />
+                        <h2>Your Collection</h2>
+                        <NFTSlider nfts={userNfts} nftSelector={selectRequestorNft} />
+                        {readyToSwap ?
+                            <div style={{ position: "fixed", textAlign: "left", right: 10, bottom: "40%", padding: 10 }}>
+                                <Row align="middle" gutter={[4, 4]}>
+                                    <Col span={8} style={{ textAlign: "center", opacity: 1 }}>
+                                        <Button
+                                            onClick={() => {
+                                                requestSwap()
+                                            }}
+                                            size="large"
+                                            shape="round"
+                                        >
+                                            <span style={{ marginRight: 8 }} role="img" aria-label="support">
+                                                🔀
+                                            </span>
+                                            Request Swap
+                                        </Button>
+                                    </Col>
+                                </Row>
+                            </div> : <></>
+                        }
 
-        </div>
-    )
+                    </div>
+            }
+        </>);
 }

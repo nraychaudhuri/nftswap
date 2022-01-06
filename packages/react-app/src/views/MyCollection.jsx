@@ -7,6 +7,7 @@ import { useLocalNFTLoader, getNFT } from "../libs/NFTLoader";
 import NFTEvents from "../components/NFTEvents";
 import NFTCard from "../components/NFTCard";
 import SwapOffers from "../components/SwapOffers";
+import { useLocation } from "react-router-dom";
 
 const { Meta } = Card;
 
@@ -34,11 +35,12 @@ export default function NFTUI({
 
   // const nfts = targetNetwork.name === "mainnet" ? useMainnetNFTLoader(mainnetProvider, "0xaB8046D6D79569895653086C1F83AcFC5a1703Fa") : useLocalNFTLoader(address, localContracts)
   const nfts = useLocalNFTLoader(address, localContracts)
+  const location = useLocation()
+  const message = location.state?.message
+  console.log(">>>>> Message ", message);
   return (
     <div>
-      {/*
-        ⚙️ Here is an example UI that displays and sets the purpose in your smart contract:
-      */}
+      <h2>{message}</h2>
       <div style={{ padding: 16, width: "90%", margin: "auto", marginTop: 64 }}>
         {address ?
           <>
@@ -47,17 +49,17 @@ export default function NFTUI({
                 {nfts &&
                   nfts.map((nft, index) => (
                     <NFTCard nft={nft} key={index} actions={[
-                      <Tooltip title="View On Blockexplorer">
-                        <FileSearchOutlined
-                          onClick={() => window.open(`${getExplorer(chainId)}address/${nft.token_address}`, "_blank")}
-                        />
-                      </Tooltip>,
-                      <Tooltip title="Transfer NFT">
-                        <SendOutlined onClick={() => handleTransferClick(nft)} />
-                      </Tooltip>,
-                      <Tooltip title="Sell On OpenSea">
-                        <ShoppingCartOutlined onClick={() => alert("OPENSEA INTEGRATION COMING!")} />
-                      </Tooltip>,
+                      // <Tooltip title="View On Blockexplorer">
+                      //   <FileSearchOutlined
+                      //     onClick={() => window.open(`${getExplorer(chainId)}address/${nft.token_address}`, "_blank")}
+                      //   />
+                      // </Tooltip>,
+                      // <Tooltip title="Transfer NFT">
+                      //   <SendOutlined onClick={() => handleTransferClick(nft)} />
+                      // </Tooltip>,
+                      // <Tooltip title="Sell On OpenSea">
+                      //   <ShoppingCartOutlined onClick={() => alert("OPENSEA INTEGRATION COMING!")} />
+                      // </Tooltip>,
                     ]} />
                   ))}
               </Space>
