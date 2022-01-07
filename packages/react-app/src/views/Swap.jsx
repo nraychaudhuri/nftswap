@@ -1,10 +1,10 @@
 import { Card, Space, Row, Col, Button } from "antd";
 import React, { useState } from "react";
-import { getLocalNFTs } from "../libs/NFTLoader";
+import { getLocalNFTs } from "../helpers/NFTLoader";
 import { useParams } from "react-router-dom";
 import NFTSlider from "../components/NFTSlider";
 import { useEffect } from "react";
-import { notifyWhenSwapRequested } from "../helpers/SwapEventHandler";
+import { notifyWhenSwapRequested } from "../helpers/SwapHelper";
 import { Redirect } from "react-router-dom";
 
 const { Meta } = Card;
@@ -46,9 +46,6 @@ export default function Swap({
                 requestorAddress: userAddress
             }
             setSwapOffer(swapOffer);
-            notifyWhenSwapRequested(writeContracts.SwapBook, userAddress, (myAddress, otherAddress, offerId) => {
-                setRedirect(true);
-            });
         }
     }, [userAddress, otherAddress])
 
@@ -57,6 +54,9 @@ export default function Swap({
         const receipt = await writeContracts.SwapBook
             .requestSwap(swapOffer.requestorTokenAddress, swapOffer.requestorTokenId, otherAddress, swapOffer.receiverTokenAddress, swapOffer.receiverTokenId)
         console.log("receipt ", receipt);
+        notifyWhenSwapRequested(writeContracts.SwapBook, userAddress, () => {
+            setRedirect(true);
+        });
     }
 
     const selectReceiverNft = (tokenAddress, tokenId) => {
@@ -93,7 +93,6 @@ export default function Swap({
                 redirect ? <Redirect
                     to={{
                         pathname: "/mycollection",
-                        state: { message: "Your Offer is sent. You will be notified when the offer is accepted" }
                     }}
                 /> :
                     <div>

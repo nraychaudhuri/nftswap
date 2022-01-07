@@ -25,6 +25,8 @@ contract SwapBook is ReentrancyGuard {
         uint256 offerId
     );
 
+    event SwapCancelled(address indexed requestor, uint256 offerId);
+
     //TODO: Setup owner specific controls
     //TODO: What happens when someone sends eth to the contract??
 
@@ -39,7 +41,7 @@ contract SwapBook is ReentrancyGuard {
         address receiverNftAddress,
         uint256 receiverNftId
     ) public {
-        SwapLib.Offer memory offer = SwapLib.createOffer(
+        SwapLib.Offer memory offer = SwapLib.requestOffer(
             requestorNftAddress,
             requestorNftId,
             receiverAddress,
@@ -91,6 +93,18 @@ contract SwapBook is ReentrancyGuard {
             offer.receiverAddress,
             offerId
         );
+    }
+
+    function cancelOffer(uint256 offerId) public {
+        SwapLib.Offer memory offer = getOffer(offerId);
+        require(
+            (msg.sender == offer.receiverAddress) ||
+                (msg.sender == offer.requestorAddress),
+            "You are not allowed to cancel the offer"
+        );
+        idToOffers[offerId] = offer.cancelOffer();
+
+        emit SwapCancelled(msg.sender, offerId);
     }
 
     function getOffer(uint256 offerId)

@@ -116,6 +116,63 @@ describe("SwapBook", function () {
         expect(contractReceipt.events[0].args[2]).to.equal(BigNumber.from("1"));
     });
 
+    it("requestor can cancel the request swap", async function () {
+        const approveTxn = await nilToken.connect(requestor).approve(bookAddress, requestorNfts[0].tokenId);
+        await approveTxn.wait();
+        const txn = await book
+            .connect(requestor)
+            .requestSwap(requestorNfts[0].address, requestorNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId);
+        await txn.wait();
+        const offerIds = await swapRequestsMade(requestorAddress);
+
+        const offer = await book.getOffer(offerIds[0]);
+        expect(offer.status).to.equal(0); //requested
+
+        const cancelTxn = await book.connect(requestor).cancelOffer(offerIds[0])
+        const receipt = await cancelTxn.wait();
+        const cancelledOffer = await book.getOffer(offerIds[0]);
+        expect(cancelledOffer.status).to.equal(2); //cancelled
+
+        const events = receipt.events.filter(e => e.event == "SwapCancelled");
+        expect(events.length).to.equal(1);
+        expect(events[0].args.requestor).to.equal(requestorAddress);
+        expect(events[0].args.offerId).to.equal(offerIds[0]);
+    });
+
+    it("receiver can cancel the request swap", async function () {
+        const approveTxn = await nilToken.connect(requestor).approve(bookAddress, requestorNfts[0].tokenId);
+        await approveTxn.wait();
+        const txn = await book
+            .connect(requestor)
+            .requestSwap(requestorNfts[0].address, requestorNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId);
+        await txn.wait();
+        const offerIds = await offersReceived(receiverAddress);
+
+        const cancelTxn = await book.connect(receiver).cancelOffer(offerIds[0])
+        const receipt = await cancelTxn.wait();
+        const cancelledOffer = await book.getOffer(offerIds[0]);
+        expect(cancelledOffer.status).to.equal(2); //cancelled
+
+        const events = receipt.events.filter(e => e.event == "SwapCancelled");
+        expect(events[0].args.requestor).to.equal(receiverAddress);
+        expect(events[0].args.offerId).to.equal(offerIds[0]);
+
+    });
+
+    it("only requestor or receiver is allowed to cancel request swap", async function () {
+        const approveTxn = await nilToken.connect(requestor).approve(bookAddress, requestorNfts[0].tokenId);
+        await approveTxn.wait();
+        const txn = await book
+            .connect(requestor)
+            .requestSwap(requestorNfts[0].address, requestorNfts[0].tokenId, receiverAddress, receiverNfts[0].address, receiverNfts[0].tokenId);
+        await txn.wait();
+        const offerIds = await swapRequestsMade(requestorAddress);
+
+        const cancelTxn = await book.connect(owner).cancelOffer(offerIds[0]).catch(e => e);
+        expect(cancelTxn.message).to.equal("VM Exception while processing transaction: reverted with reason string 'You are not allowed to cancel the offer'");
+
+    });
+
 
     it("Get all the swap offers made to an address", async function () {
         //approve contract for initiating the swap
@@ -246,7 +303,7 @@ describe("SwapBook", function () {
         await txn1.wait();
         const offers = await offersReceived(receiverAddress);
         const offer = await book.getOffer(offers[0]);
-        expect(offer.isAccepted).to.equal(false);
+        expect(offer.status).to.equal(0); //requested
         approveContract(receiver, bookAddress, receiverNfts[0].tokenId);
         const txn = await book.connect(receiver).acceptOffer(offers[0])
         const receipt = await txn.wait();
@@ -259,14 +316,7 @@ describe("SwapBook", function () {
         expect(newOwner2).to.equal(requestorAddress);
 
         const acceptedOffer = await book.getOffer(offers[0]);
-        expect(acceptedOffer.isAccepted).to.equal(true);
-
-        // const eventFilter = nilToken.filters.Transfer();
-        // const events = await nilToken.queryFilter(eventFilter);
-        // console.log("events ", events);
-        // expect(receipt.events.length).to.equal(2);
-        // expect(contractReceipt.events[0].event).to.equal("Transfer");
-        // expect(contractReceipt.events[1].event).to.equal("Transfer");
+        expect(acceptedOffer.status).to.equal(1); //accepted
 
     });
 

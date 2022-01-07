@@ -3,11 +3,12 @@ import React, { useState } from "react";
 import { Events } from "../components";
 import { Tooltip } from "antd";
 import { FileSearchOutlined, SendOutlined, ShoppingCartOutlined } from "@ant-design/icons";
-import { useLocalNFTLoader, getNFT } from "../libs/NFTLoader";
+import { useLocalNFTLoader, getNFT } from "../helpers/NFTLoader";
 import NFTEvents from "../components/NFTEvents";
 import NFTCard from "../components/NFTCard";
 import SwapOffers from "../components/SwapOffers";
 import { useLocation } from "react-router-dom";
+import SwapRequests from "../components/SwapRequests";
 
 const { Meta } = Card;
 
@@ -69,6 +70,7 @@ export default function NFTUI({
         }
       </div>
       <SwapOffers localContracts={localContracts} address={address} provider={localProvider} writeContracts={writeContracts} />
+      <SwapRequests localContracts={localContracts} address={address} provider={localProvider} writeContracts={writeContracts} />
     </div>
   );
 }

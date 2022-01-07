@@ -1,6 +1,6 @@
 import React from "react";
 import { useState, useEffect } from "react";
-import { loadTestNFTWallets } from "../libs/NFTLoader";
+import { loadTestNFTWallets } from "../helpers/NFTLoader";
 import { Tooltip, Card, Space } from "antd";
 import { SwapOutlined } from "@ant-design/icons";
 import NFTCard from "../components/NFTCard";

@@ -5,6 +5,11 @@ pragma solidity >=0.8.0 <0.9.0;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 library SwapLib {
+    enum OfferStatus {
+        Requested,
+        Accepted,
+        Cancelled
+    }
     struct Offer {
         address requestorAddress;
         address requestorNft;
@@ -12,7 +17,7 @@ library SwapLib {
         address receiverAddress;
         address receiverNft;
         uint256 receiverNftId;
-        bool isAccepted;
+        OfferStatus status;
     }
 
     function getRequestorNft(Offer memory offer)
@@ -27,8 +32,13 @@ library SwapLib {
         return ERC721(offer.receiverNft);
     }
 
-    function isOpen(Offer memory offer) internal pure returns (bool) {
-        return !offer.isAccepted;
+    function cancelOffer(Offer memory offer)
+        internal
+        pure
+        returns (Offer memory)
+    {
+        offer.status = OfferStatus.Cancelled;
+        return offer;
     }
 
     function accept(Offer memory offer) internal returns (Offer memory) {
@@ -42,11 +52,11 @@ library SwapLib {
             offer.requestorAddress,
             offer.receiverNftId
         );
-        offer.isAccepted = true;
+        offer.status = OfferStatus.Accepted;
         return offer;
     }
 
-    function createOffer(
+    function requestOffer(
         address requestorNftAddress,
         uint256 requestorNftId,
         address receiverAddress,
@@ -61,7 +71,7 @@ library SwapLib {
                 receiverAddress,
                 receiverNftAddress,
                 receiverNftId,
-                false
+                OfferStatus.Requested
             );
     }
 }
