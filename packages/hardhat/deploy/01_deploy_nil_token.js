@@ -61,14 +61,14 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
 
   // Verify your contracts with Etherscan
   // You don't want to verify on localhost
-  if (chainId !== localChainId) {
-    // wait for etherscan to be ready to verify
-    await sleep(15000);
-    await run("verify:verify", {
-      address: NilTokenContract.address,
-      contract: "contracts/NilToken.sol:NilToken",
-      contractArguments: [],
-    });
-  }
+  // if (chainId !== localChainId) {
+  //   // wait for etherscan to be ready to verify
+  //   await sleep(15000);
+  //   await run("verify:verify", {
+  //     address: NilTokenContract.address,
+  //     contract: "contracts/NilToken.sol:NilToken",
+  //     contractArguments: [],
+  //   });
+  // }
 };
 module.exports.tags = ["NilToken"];

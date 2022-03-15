@@ -113,8 +113,9 @@ export const getLocalNFTs = async (address, localContracts) => {
     if (!localContracts.NilToken) {
         return []
     }
-    const token_address = localContracts.NilToken?.address;
-    const symbol = await localContracts.NilToken?.symbol();
+    const token_address = localContracts.NilToken.address;
+    const symbol = await localContracts.NilToken.symbol();
+    //Count all NFTs assigned to an owner
     const balance = await localContracts.NilToken.balanceOf(address);
     //create range of values from balance
     const allPromises = Array.from({ length: balance }, (v, i) => i).map(async (i) => {

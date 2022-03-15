@@ -26,7 +26,7 @@ function Home({ targetNetwork, localContracts }) {
       console.log(">>> Collection ", x);
       setCollection(x);
     } else {
-      alert("Noy Supported");
+      alert("Not Supported");
     }
   }, [targetNetwork, localContracts]);
   return (

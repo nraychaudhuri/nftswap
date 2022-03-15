@@ -1,16 +1,6 @@
 const { use, expect } = require("chai");
 const { ethers } = require("hardhat");
-const { solidity } = require("ethereum-waffle");
 const { BigNumber } = require("@ethersproject/bignumber");
-
-// const {
-//     BN,           // Big Number support
-//     constants,    // Common constants, like the zero address and largest integers
-//     expectEvent,  // Assertions for emitted events
-//     expectRevert, // Assertions for transactions that should fail
-// } = require('@openzeppelin/test-helpers');
-
-// use(solidity);
 
 describe("SwapBook", function () {
     let book;

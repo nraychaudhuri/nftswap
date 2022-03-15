@@ -42,12 +42,12 @@ library SwapLib {
     }
 
     function accept(Offer memory offer) internal returns (Offer memory) {
-        getRequestorNft(offer).transferFrom(
+        getRequestorNft(offer).safeTransferFrom(
             offer.requestorAddress,
             offer.receiverAddress,
             offer.requestorNftId
         );
-        getReceiverNft(offer).transferFrom(
+        getReceiverNft(offer).safeTransferFrom(
             msg.sender,
             offer.requestorAddress,
             offer.receiverNftId
